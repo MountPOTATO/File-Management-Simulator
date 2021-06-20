@@ -1,0 +1,107 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'mainwindow.ui'
+#
+# Created by: PyQt5 UI code generator 5.9.2
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QIcon
+
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(1480, 745)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.tree_directory_view = QtWidgets.QTreeWidget(self.centralwidget)
+        self.tree_directory_view.setGeometry(QtCore.QRect(40, 140, 231, 491))
+        self.tree_directory_view.setObjectName("tree_directory_view")
+        self.tree_directory_view.headerItem().setText(0, "name")
+        self.tree_directory_view.setColumnCount(1)
+        self.lbl_cur_direct = QtWidgets.QLabel(self.centralwidget)
+        self.lbl_cur_direct.setGeometry(QtCore.QRect(300, 90, 531, 41))
+        self.lbl_cur_direct.setObjectName("lbl_cur_direct")
+        self.tbl_file_table = QtWidgets.QTableWidget(self.centralwidget)
+        self.tbl_file_table.setGeometry(QtCore.QRect(300, 140, 651, 491))
+        self.tbl_file_table.setObjectName("tbl_file_table")
+        self.tbl_file_table.setColumnCount(4)
+        self.tbl_file_table.setRowCount(0)
+        # self.tbl_file_table.horizontalHeader().setSectionResizeMode( QtWidgets.QHeaderView.Stretch)
+        self.tbl_file_table.setColumnWidth(1,220)
+        item = QtWidgets.QTableWidgetItem()
+        self.tbl_file_table.setHorizontalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tbl_file_table.setHorizontalHeaderItem(1, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tbl_file_table.setHorizontalHeaderItem(2, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tbl_file_table.setHorizontalHeaderItem(3, item)
+        self.edt_textbox = QtWidgets.QPlainTextEdit(self.centralwidget)
+        self.edt_textbox.setGeometry(QtCore.QRect(970, 140, 461, 431))
+        self.edt_textbox.setObjectName("edt_textbox")
+        self.btn_return = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_return.setGeometry(QtCore.QRect(840, 90, 112, 34))
+        self.btn_return.setObjectName("btn_return")
+        self.lbl_file_name = QtWidgets.QLabel(self.centralwidget)
+        self.lbl_file_name.setGeometry(QtCore.QRect(970, 90, 461, 41))
+        self.lbl_file_name.setObjectName("lbl_file_name")
+        self.lbl_overview = QtWidgets.QLabel(self.centralwidget)
+        self.lbl_overview.setGeometry(QtCore.QRect(40, 90, 221, 41))
+        self.lbl_overview.setObjectName("lbl_overview")
+        self.lbl_title = QtWidgets.QLabel(self.centralwidget)
+        self.lbl_title.setGeometry(QtCore.QRect(40, 20, 861, 61))
+        self.lbl_title.setObjectName("lbl_title")
+        self.lbl_title.setStyleSheet("font-size:24px;font-weight:bold;")
+        self.btn_format = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_format.setGeometry(QtCore.QRect(1089, 660, 342, 41))
+        self.btn_format.setObjectName("btn_format")
+        self.btn_new_file = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_new_file.setGeometry(QtCore.QRect(42, 660, 342, 41))
+        self.btn_new_file.setObjectName("btn_new_file")
+        self.btn_new_directory = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_new_directory.setGeometry(QtCore.QRect(391, 660, 342, 41))
+        self.btn_new_directory.setObjectName("btn_new_directory")
+        self.btn_save_exit = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_save_exit.setGeometry(QtCore.QRect(740, 660, 342, 41))
+        self.btn_save_exit.setObjectName("btn_save_exit")
+        self.btn_save = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_save.setGeometry(QtCore.QRect(967, 580, 226, 41))
+        self.btn_save.setObjectName("btn_save")
+        self.btn_quit = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_quit.setGeometry(QtCore.QRect(1200, 580, 226, 41))
+        self.btn_quit.setObjectName("btn_quit")
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
+
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.lbl_cur_direct.setText(_translate("MainWindow", "current directory:     ( " \
+                                                             +'<font color = #00FFFF>%s</font>'%("right click") \
+                                                               +' ) to operater'))
+        item = self.tbl_file_table.horizontalHeaderItem(0)
+        item.setText(_translate("MainWindow", "file name"))
+        item = self.tbl_file_table.horizontalHeaderItem(1)
+        item.setText(_translate("MainWindow", "modified time"))
+        item = self.tbl_file_table.horizontalHeaderItem(2)
+        item.setText(_translate("MainWindow", "file type"))
+        item = self.tbl_file_table.horizontalHeaderItem(3)
+        item.setText(_translate("MainWindow", "file size"))
+        self.btn_return.setText(_translate("MainWindow", "return"))
+        self.lbl_file_name.setText(_translate("MainWindow", "current path: ./"))
+        self.lbl_overview.setText(_translate("MainWindow", "tree directory overview:"))
+        self.lbl_title.setText(_translate("MainWindow", "Operation System Assignment 3: File Management Demo"))
+        self.btn_format.setText(_translate("MainWindow", "format"))
+        self.btn_new_file.setText(_translate("MainWindow", "new file"))
+        self.btn_new_directory.setText(_translate("MainWindow", "new directory"))
+        self.btn_save_exit.setText(_translate("MainWindow", "save and exit"))
+        self.btn_save.setText(_translate("MainWindow", "save"))
+        self.btn_quit.setText(_translate("MainWindow", "quit"))
+

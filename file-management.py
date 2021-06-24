@@ -1,7 +1,7 @@
 '''
 Author: mount_potato
 Date: 2021-06-16 16:49:22
-LastEditTime: 2021-06-20 21:54:41
+LastEditTime: 2021-06-24 19:24:18
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: \File-Management-Demo\file-management.py
@@ -10,12 +10,13 @@ import sys
 import os
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTreeWidgetItem, QWidget, QApplication, QMainWindow, QMessageBox, QInputDialog, QLineEdit, QMenu, QAction
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QTextCursor
 from PyQt5 import QtGui, QtCore
 import mainwindow
 from utils import *
 import time
 import copy
+from memory import *
 
 INIT_BLOCK=4
 TOTAL_MB=32
@@ -36,26 +37,41 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
                             self.btn_new_directory,self.btn_save_exit,self.btn_format]
         self.widget_list_2=[self.edt_textbox,self.btn_quit,self.btn_save]
 
-        #图标设置
-        
+    
+        # #位图列表
+        self.bitmap_list=[]
+
+        self.setup()
+
+    ################################内存写方法#########################
+            
+    
+
+
+
+
+
+                
+
+
+
+
+    def setup(self):
+
         ###基础参数设置
         #当前目录名字
         self.curr_directory_name=""
-        #当前文件
-        self.curr_file=None
         #当前路径
         self.curr_path="current path: ./"
         self.curr_path_list=[""]
     
-        #位图列表
-        self.bitmap_list=[]
-        #当前目录中包含的文件（文件名，初始块地址，文件大小，文件类型；"Parent\n"是返回上级目录）
+        #目录列表:(文件名，初始块地址，文件大小，文件类型）
         self.curr_directory_list = [["Parent\n"], [0], [0], [1]]
         #当前目录的初始块地址
         self.curr_directory_node=INIT_BLOCK
         #当前编辑的文本文档的初始块地址
         self.curr_text_node=0
-
+        #当前表格点击行
         self.curr_row=0
 
         self.init_dir_list=[]
@@ -63,151 +79,6 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         self.init_node=INIT_BLOCK
 
         self.curr_root=None
-        self.setup()
-
-    ################################内存写方法#########################
-    
-    # 每个块的最后两个字节用来保存文件后继块（如果有）的地址，这个函数将两个字节的地址转换成整数
-    def locate(self, word):
-        location = int.from_bytes(word, byteorder='big')
-        return location
-    
-    # 分配块，这里倒来倒去只是为了将被分配出去的一块在位图中的对应位置1
-    def assign_memory(self):
-        location = 0
-        for i in range(4):
-            my_tmp_array = bytearray(self.bitmap_list[i])
-            for j in range(1024):
-                if my_tmp_array[j] != 255:
-                    tmp_str_list = bin(my_tmp_array[j])[2:]
-                    while len(tmp_str_list) < 8:
-                        tmp_str_list = '0' + tmp_str_list
-                    tmp_str_list = list(tmp_str_list)
-                    for k in range(8):
-                        if tmp_str_list[k] == '0':
-                            tmp_str_list[k] = '1'
-                            location = i * 1024 * 8 + j * 8 + k
-                            break
-                    my_tmp_array[j] = int("".join(tmp_str_list), 2)
-                    self.bitmap_list[i] = bytes(my_tmp_array)
-                    return location
-        QMessageBox. critical(self, 'Error','Memory overflow！\nThe file management system will be formatted。') 
-        QApplication.quit()
-    
-    # 向一块中写入数据
-    def add_data(self, location, data, next):
-        next = next.to_bytes(2, byteorder='big')
-        my_tmp_array = bytearray(self.bitmap_list[location])
-        for i in range(1022):
-            if i < len(data):
-                my_tmp_array[i] = data[i]
-            else:
-                my_tmp_array[i] = 0       
-        my_tmp_array[1022] = next[0]
-        my_tmp_array[1023] = next[1]
-        self.bitmap_list[location] = bytes(my_tmp_array)
-    
-    # 清除一个块中的数据，并将位图中的相应位置0
-    def erase_data(self, location):
-        my_tmp_array = bytearray(self.bitmap_list[location])
-        for i in range(1024):
-            my_tmp_array[i] = 0
-        self.bitmap_list[location] = bytes(my_tmp_array)
-        i = location // (1024 * 8)
-        j = (location - i * 1024 * 8) // 8
-        k = location % 8
-        my_tmp_array = bytearray(self.bitmap_list[i])
-        tmp_str_list = bin(my_tmp_array[j])[2:]
-        while len(tmp_str_list) < 8:
-            tmp_str_list = '0' + tmp_str_list
-        tmp_str_list = list(tmp_str_list)
-        tmp_str_list[k] = '0'
-        my_tmp_array[j] = int("".join(tmp_str_list), 2)
-        self.bitmap_list[i] = bytes(my_tmp_array)
-
-
-    # 把目录从列表打包成字节串
-    def dir_list_to_str(self,my_list):
-        packed_bytes = b''
-        str_list, location_list, size_list, type_list = my_list
-        for i in range(len(str_list)):
-            packed_bytes += str_list[i].encode(encoding = 'utf-8') \
-                            + b'\xff' \
-                            + location_list[i].to_bytes(2, byteorder='big') \
-                            + size_list[i].to_bytes(2, byteorder='big')  + \
-                            type_list[i].to_bytes(2, byteorder='big') + b'\xff'
-        return packed_bytes            
-    
-    # 把目录从字节串还原成列表
-    def dir_str_to_list(self,packed_bytes):
-        i = 0
-        str_list = []
-        location_list = []
-        size_list = []
-        type_list = []
-
-        while i<len(packed_bytes):
-            while(packed_bytes[i] != 255):
-                i += 1 
-            str_list.append(packed_bytes[0:i].decode(encoding = 'utf-8'))
-            location_list.append(int.from_bytes(packed_bytes[i + 1:i + 3], byteorder='big'))
-            size_list.append(int.from_bytes(packed_bytes[i + 3:i + 5], byteorder='big'))
-            type_list.append(int.from_bytes(packed_bytes[i + 5:i + 7], byteorder='big'))
-            packed_bytes = packed_bytes[i + 8:]
-            i = 0
-        return [str_list, location_list, size_list, type_list]
-
-    # 读取文件，254对应b"\xfe"，连续两个254就是EOF
-    def read_file(self, start_location):
-        file_bytes = b''
-        tmp_location = start_location
-        while tmp_location != 0:
-            if self.locate(self.bitmap_list[tmp_location][1022:]) != 0:
-                file_bytes += self.bitmap_list[tmp_location][:1022]
-            else:
-                i = -1
-                while i < 1022:
-                    i += 1
-                    if self.bitmap_list[tmp_location][i] == 254 and self.bitmap_list[tmp_location][i + 1] == 254:
-                        break
-                file_bytes += self.bitmap_list[tmp_location][:i]
-            tmp_location = self.locate(self.bitmap_list[tmp_location][1022:])
-        return file_bytes
-    
-    # 截短到0，由于写入时候是整块写入，所以这里实际上并没有清除初始块中的数据
-    def cut_to_zero_file(self, start_location):
-        block_list = []
-        tmp_location = start_location
-        while tmp_location != 0:
-            block_list.append(tmp_location)
-            tmp_location = self.locate(self.bitmap_list[tmp_location][1022:])
-        release_or_not = False
-        for i in block_list:
-            if release_or_not == True:
-                self.erase_data(i)
-            else:
-                release_or_not = True
-    
-    # 写入文件
-    def write_file(self, start_location, packed_data):
-        length = len(packed_data) // 1022 + 1
-        if length % 1022 == 1021:
-            packed_data = packed_data + b'\xfe'
-        elif length % 1022 != 0:
-            packed_data = packed_data + b'\xfe\xfe'
-        while(length > 0):
-            length -= 1
-            if length == 0:
-                self.add_data(start_location, packed_data[:1022], 0)
-            else:
-                tmp_location = self.assign_memory()
-                self.add_data(start_location, packed_data[:1022], tmp_location)
-                start_location = tmp_location
-            packed_data = packed_data[1022:]
-
-
-    def setup(self):
-
         '''
         触发函数设置
         '''
@@ -239,7 +110,7 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         '''
         存储于磁盘中的数据设置
         '''
-        source_path="./root.mimg"
+        source_path="./root.txt"
         if not os.path.exists(source_path):
             #111110000,
             self.bitmap_list.append(b"\xf8" + b"\x00" * 1023) #1kb  
@@ -248,8 +119,8 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
                 self.bitmap_list.append(b"\x00" * 1024)
             
             self.curr_directory_list=[["Parent\n"], [0], [0], [1]]
-            dir_byte_str=self.dir_list_to_str(self.curr_directory_list)    
-            self.write_file(INIT_BLOCK,dir_byte_str)
+            dir_byte_str=dir_list_to_str(self.curr_directory_list)    
+            write_file(self,INIT_BLOCK,dir_byte_str)
 
             #print(dir_byte_str)
         else:
@@ -260,7 +131,7 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
                 self.bitmap_list.append(tmp_bytes)
             srcfile_data.close()
             
-            self.curr_directory_list=self.dir_str_to_list(self.read_file(4))
+            self.curr_directory_list=dir_str_to_list(read_file(self,4))
             for i in range(1,len(self.curr_directory_list[0])):
                 #添加表格中的文件内容
                 if self.curr_directory_list[3][i]==0:
@@ -299,8 +170,7 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         # 确定被点击的是列表中的哪一项
         item = source.itemAt(pos)
         if item != None:
-            row=self.tbl_file_table.currentRow()
-            self.curr_row=row
+            self.curr_row=self.tbl_file_table.currentRow()
             self.right_click_menu.exec_(source.mapToGlobal(pos))
 
         
@@ -323,25 +193,26 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         value,ok=QInputDialog.getText(self,"New File","Please input the file name: ",QLineEdit.Normal,init_str)
         if not ok:
             return
-        if str(value)=="" or str(value).isspace():
-            QMessageBox.warning(self,"Error!","The file name cannot be empty.")
-            return
-        for i in range(0,self.tbl_file_table.rowCount()):
-            if self.tbl_file_table.item(i,0).text()==value:#加图修改
-                QMessageBox.warning(self,"Error!","File name must be unique in the same directory.")
-                return
         else:
-            ##更新可视化逻辑
-            self.table_add( FILE,str(value),
-                            str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
-                            "txt file",
-                            "0 B")
-            new_assign=self.assign_memory()
-            self.curr_directory_list_add(value,new_assign,0,0)
-            self.write_file(new_assign,b"\xfe\xfe")
-            self.cut_to_zero_file(self.curr_directory_node)
-            self.write_file(self.curr_directory_node,self.dir_list_to_str(self.curr_directory_list))
-            self.update_tree_view()
+            if str(value)=="" or str(value).isspace():
+                QMessageBox.warning(self,"Error!","The file name cannot be empty.")
+                return
+            for i in range(0,self.tbl_file_table.rowCount()):
+                if self.tbl_file_table.item(i,0).text()==value:#加图修改
+                    QMessageBox.warning(self,"Error!","File name must be unique in the same directory.")
+                    return
+            else:
+                ##更新可视化逻辑
+                self.table_add( FILE,str(value),
+                                str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
+                                "txt file",
+                                "0 B")
+                new_assign=assign_memory(self)
+                self.curr_directory_list_add(value,new_assign,0,0)
+                write_file(self,new_assign,b"\xfe\xfe")
+                cut_to_zero_file(self,self.curr_directory_node)
+                write_file(self,self.curr_directory_node,dir_list_to_str(self.curr_directory_list))
+                self.update_tree_view()
 
     #2
     def on_new_folder_btn_clicked(self):
@@ -371,18 +242,20 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
                             str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
                             "folder",
                             " ")
-            new_assign=self.assign_memory()
+            new_assign=assign_memory(self)
             self.curr_directory_list_add(value,new_assign,0,1)
-            dir_str=self.dir_list_to_str([["Parent\n"], [self.curr_directory_node], [0], [1]])
-            self.write_file(new_assign,dir_str)
-            self.cut_to_zero_file(self.curr_directory_node)
-            self.write_file(self.curr_directory_node,self.dir_list_to_str(self.curr_directory_list))
+            dir_str=dir_list_to_str([["Parent\n"], [self.curr_directory_node], [0], [1]])
+            write_file(self,new_assign,dir_str)
+            cut_to_zero_file(self,self.curr_directory_node)
+            write_file(self,self.curr_directory_node,dir_list_to_str(self.curr_directory_list))
             self.update_tree_view()
         
     #3
     def on_format_btn_clicked(self):
         choice=QMessageBox.question(self,"Formatting...","Are you sure you want to delete all the files?",QMessageBox.Yes|QMessageBox.No)
-        if choice==QMessageBox.Yes:
+        if choice==QMessageBox.No:
+            return
+        else:
             self.tbl_file_table.clearContents()
             self.tbl_file_table.setRowCount(0)
             self.edt_textbox.clear()
@@ -400,22 +273,19 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
             self.bitmap_list.append(b"\xf8" + b"\x00" * 1023) #1kb           
             for i in range(0,TOTAL_KB-1):
                 self.bitmap_list.append(b"\x00" * 1024)
-            dir_byte_str=self.dir_list_to_str(self.curr_directory_list)    
-            self.write_file(INIT_BLOCK,dir_byte_str)
+            dir_byte_str=dir_list_to_str(self.curr_directory_list)    
+            write_file(self,INIT_BLOCK,dir_byte_str)
             self.update_tree_view()
         
             
 
     #4
     def on_save_exit_btn_clicked(self):
-        if self.btn_save.isEnabled():
-            self.on_save_btn_clicked()
-        dir_str=self.dir_list_to_str(self.curr_directory_list)
-        self.cut_to_zero_file(self.curr_directory_node)
-        self.write_file(self.curr_directory_node,dir_str)
 
-        source_path="./root.mimg"
-        srcfile_data=open(source_path,"wb")
+        cut_to_zero_file(self,self.curr_directory_node)
+        write_file(self,self.curr_directory_node,dir_list_to_str(self.curr_directory_list))
+
+        srcfile_data=open("./root.txt","wb")
         for i in self.bitmap_list:
             srcfile_data.write(i)
         srcfile_data.close()
@@ -423,6 +293,8 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
 
     #5
     def on_return_btn_clicked(self):
+        if self.curr_path =="current path: ./":
+            return
         self.curr_path=self.curr_path[:-(len(self.curr_directory_name)+2)] \
                 if  self.curr_path[-2]=="\n" \
                 else self.curr_path[:-(len(self.curr_directory_name)+1)]
@@ -433,10 +305,10 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         self.curr_directory_name=self.curr_path_list[-1]
         if self.curr_directory_name=="":
             self.btn_return.setEnabled(False)
-        self.cut_to_zero_file(self.curr_directory_node)
-        self.write_file(self.curr_directory_node,self.dir_list_to_str(self.curr_directory_list))
+        cut_to_zero_file(self,self.curr_directory_node)
+        write_file(self,self.curr_directory_node,dir_list_to_str(self.curr_directory_list))
         self.curr_directory_node=self.curr_directory_list[1][0]
-        self.curr_directory_list=self.dir_str_to_list(self.read_file(self.curr_directory_node))
+        self.curr_directory_list=dir_str_to_list(read_file(self,self.curr_directory_node))
         for i in range(1,len(self.curr_directory_list[0])):
             if self.curr_directory_list[3][i]==0: #文本
                     #获取文本文件大小
@@ -465,12 +337,10 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         self.set_widget_list_available(True,False)
         text_len=len(text)//1022+1
         #添加EOF
-        if text_len%1022==1021:
-            text+=b'\xfe'
-        elif text_len%1022!=0:
-            text+=b'\xfe\xfe'
-        self.cut_to_zero_file(self.curr_text_node)
-        self.write_file(self.curr_text_node,text)
+        text=text+b'\xfe' if text_len%1022==1021 else ( text+b'\xfe\xfe' if text_len%1022!=0 else text)
+        
+        cut_to_zero_file(self,self.curr_text_node)
+        write_file(self,self.curr_text_node,text)
         self.curr_directory_list[2][self.curr_directory_list[1].index(self.curr_text_node)]=len(text)
         self.btn_return.setEnabled(False)
         if self.curr_directory_name !="":
@@ -498,13 +368,12 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         file_type=self.tbl_file_table.item(row,2).text()
         if file_type=="folder":
             self.curr_directory_name=file_name
-            content_len=len(self.curr_path)%30
+            content_len=len(self.curr_path)%40
             self.curr_path+=self.curr_directory_name
-            curr_len=len(self.curr_path)%30
-            if curr_len-content_len<=0 or content_len==0:
-                self.curr_path+="\n/"
-            else:
-                self.curr_path+="/"
+            curr_len=len(self.curr_path)%40
+
+            self.curr_path+=("\n/" if(curr_len<=content_len or content_len==0) else "/")
+            
             self.lbl_file_name.setText(self.curr_path)
             #表格修改
             self.tbl_file_table.clearContents()
@@ -513,10 +382,10 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
             self.btn_return.setEnabled(True)
             #打开
             self.update_tree_view()
-            self.cut_to_zero_file(self.curr_directory_node)
-            self.write_file(self.curr_directory_node,self.dir_list_to_str(self.curr_directory_list))
+            cut_to_zero_file(self,self.curr_directory_node)
+            write_file(self,self.curr_directory_node,dir_list_to_str(self.curr_directory_list))
             self.curr_directory_node=self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)]
-            self.curr_directory_list=self.dir_str_to_list(self.read_file(self.curr_directory_node))
+            self.curr_directory_list=dir_str_to_list(read_file(self,self.curr_directory_node))
             
             for i in range(1,len(self.curr_directory_list[0])):
                 if self.curr_directory_list[3][i]==0: #文本
@@ -541,9 +410,13 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
             self.set_widget_list_available(False,True)#设置文件编辑区可用
             self.curr_text_node=self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)]
             #文件大小
-            self.lbl_file_name.setText("file size: "+str(self.curr_directory_list[2][self.curr_directory_list[1].index(self.curr_text_node)])+" B")
-            text=str(self.read_file(self.curr_text_node),encoding="utf-8")
-            self.edt_textbox.setPlainText(text)   
+            self.lbl_file_name.setText("file size: " \
+                                        +str(self.curr_directory_list[2][self.curr_directory_list[1].index(self.curr_text_node)]) \
+                                        +" B\t\t"
+                                        +'<font color = #00FFFF>%s</font>'%("please edit below ↓"))
+            text=str(read_file(self,self.curr_text_node),encoding="utf-8")
+            self.edt_textbox.setPlainText(text)
+            self.edt_textbox.moveCursor(QTextCursor.End)   
         self.tbl_file_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
     #重命名文件
@@ -566,8 +439,8 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
             self.tbl_file_table.setItem(row,0,QtWidgets.QTableWidgetItem(QIcon(image_path),value))
             self.tbl_file_table.setItem(row,1,QtWidgets.QTableWidgetItem(str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))))
             self.curr_directory_list[0][self.curr_directory_list[0].index(file_name)] = value
-            self.cut_to_zero_file(self.curr_directory_node)
-            self.write_file(self.curr_directory_node, self.dir_list_to_str(self.curr_directory_list))   
+            cut_to_zero_file(self,self.curr_directory_node)
+            write_file(self,self.curr_directory_node, dir_list_to_str(self.curr_directory_list))   
 
         self.update_tree_view()
         self.tbl_file_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -578,44 +451,32 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
         file_name=self.tbl_file_table.item(row,0).text()
         file_type=self.tbl_file_table.item(row,2).text()
 
-        if file_type=="folder":
-            self.recur_delete_directory(self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)])
+        if file_type=="txt file":
+            cut_to_zero_file(self,self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)])
+            erase_data(self,self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)])
         else: #file_type=="txt file"
-            self.cut_to_zero_file(self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)])
-            self.erase_data(self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)])
+            self.recur_delete_directory(self.curr_directory_list[1][self.curr_directory_list[0].index(file_name)])
         
         for i in range(3,-1,-1):
             del self.curr_directory_list[i][self.curr_directory_list[0].index(file_name)]
         self.tbl_file_table.removeRow(row)
 
-        self.cut_to_zero_file(self.curr_directory_node)
-        self.write_file(self.curr_directory_node,self.dir_list_to_str(self.curr_directory_list))
-        self.curr_directory_list=self.dir_str_to_list(self.read_file(self.curr_directory_node))
+        cut_to_zero_file(self,self.curr_directory_node)
+        write_file(self,self.curr_directory_node,dir_list_to_str(self.curr_directory_list))
+        self.curr_directory_list=dir_str_to_list(read_file(self,self.curr_directory_node))
         self.update_tree_view()
         self.tbl_file_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
 
     def recur_delete_directory(self,node):
-        dir_list=self.dir_str_to_list(self.read_file(node))
+        dir_list=dir_str_to_list(read_file(self,node))
         for i in range(1,len(dir_list[0])):
             if dir_list[3][i]==1:
                 self.recur_delete_directory(dir_list[1][i])
-            self.cut_to_zero_file(dir_list[1][i])
-            self.erase_data(dir_list[1][i])
+            cut_to_zero_file(self,dir_list[1][i])
+            erase_data(self,dir_list[1][i])
 
 
-    #关闭窗体
-    def on_close_window_clicked(self,QCloseEvent):
-        box_text='''"DO you want to leave without saving?\n
-                    If not, close this message box and click \"%s\".
-        '''.format(self.btn_save_exit.text())
-
-        choice=QMessageBox.warning(self,box_text,QMessageBox.Yes|QMessageBox.No)
-
-        if choice==QMessageBox.Yes:
-            QCloseEvent.accept()
-        if choice==QMessageBox.No:
-            QCloseEvent.ignore()
 
     def set_widget_list_available(self,bool1,bool2):
         for i in self.widget_list_1:
@@ -624,10 +485,9 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
             i.setEnabled(bool2)
     
     def curr_directory_list_add(self,c1,c2,c3,c4):
-        self.curr_directory_list[0].append(c1)
-        self.curr_directory_list[1].append(c2)
-        self.curr_directory_list[2].append(c3)
-        self.curr_directory_list[3].append(c4)
+        tmp=[c1,c2,c3,c4]
+        for i in range(0,len(tmp)):
+            self.curr_directory_list[i].append(tmp[i])
     
     def table_add(self,type,c1,c2,c3,c4):
         self.tbl_file_table.insertRow(self.tbl_file_table.rowCount())
@@ -669,10 +529,10 @@ class FileManagement(QMainWindow,mainwindow.Ui_MainWindow):
                 
                 tmp_node=node
                 tmp_dir_list=list
-                self.cut_to_zero_file(tmp_node)
-                self.write_file(tmp_node,self.dir_list_to_str(tmp_dir_list))
+                cut_to_zero_file(self,tmp_node)
+                write_file(self,tmp_node,dir_list_to_str(tmp_dir_list))
                 tmp_node=tmp_dir_list[1][tmp_dir_list[0].index(folder_name)]
-                tmp_dir_list=self.dir_str_to_list(self.read_file(tmp_node))
+                tmp_dir_list=dir_str_to_list(read_file(self,tmp_node))
                 self.update_tree(tmp_dir_list,tmp_node,folder_child,folder_name)                
                 
         self.tree_directory_view.addTopLevelItem(root)
